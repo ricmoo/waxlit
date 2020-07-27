@@ -1,0 +1,20 @@
+{
+  "name": "waxlit",
+  "version": "0.0.1",
+  "description": "The waxLit library.",
+  "main": "index.js",
+  "dependencies": {
+    "typescript": "^3.9.7"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "auto-build": "npm run build -- -w",
+    "build": "tsc --build ./tsconfig.json",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "waxlit"
+  ],
+  "author": "Richard Moore <me@ricmoo.com>",
+  "license": "MIT"
+}

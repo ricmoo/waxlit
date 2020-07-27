@@ -1,0 +1,192 @@
+@font-face {
+  font-family: AvrileSerifRegular;
+  src: url(./linguistics-pro/LinguisticsPro-Regular.otf);
+  font-weight: normal;
+}
+
+@font-face {
+  font-family: AvrileSerifRegular;
+  src: url(./linguistics-pro/LinguisticsPro-Bold.otf);
+  font-weight: bold;
+}
+
+html {
+  margin: 0;
+}
+
+body {
+  margin: 0;
+}
+
+.clearfix {
+  clear: both;
+}
+
+span.sup {
+  font-size: 0.7em;
+  color: #777;
+  padding-left: 3px;
+  position: relative;
+  top: -5px;
+}
+
+.editor {
+  background: #fff;
+  bottom: 0;
+  height: 0;
+  left: 0;
+  padding: 10px 30px;
+  position: fixed;
+  right: 0; 
+  transition: height 0.3s ease-out;
+}
+
+body.editing .editor {
+  box-shadow: 0 0 15px 0px #888;
+  height: 250px;
+}
+
+.editor textarea {
+  border: none;
+  font-family: monospace;
+  font-size: 20px;
+  height: 100%;
+  outline: none;
+  width: 100%;  
+}
+
+.page {
+  transition: margin-bottom 0.3s ease-out;
+}
+
+body.editing .page {
+  margin-bottom: 300px;
+}
+
+.page .header {
+    height: 100px;
+}
+
+.page .footer {
+}
+
+.title {
+  font-size: 40px;
+}
+
+.social {
+  padding: 30px 0 20px;
+  position: relative;
+}
+
+.social .avatar {
+  border-radius: 35px;
+  box-sizing: border-box;
+  float: left;
+  height: 70px;
+  margin-right: 20px;
+  overflow: hidden;
+  position: relative;
+  width: 70px;
+}
+
+.social .avatar .border {
+  border: 2px solid rgba(0, 0, 0, 0.3);
+  border-radius: 35px;
+  box-sizing: border-box;
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 100%;
+}
+
+.social .avatar img {
+  height: 100%;
+  width: 100%;
+}
+
+.social .info {
+  display: inline-block;
+  float: left;
+  padding: 3px 0 3px 0;
+  line-height: 32px;
+  top: 0;
+  height: 70px;
+  overflow: hidden;
+}
+
+.social .info .name {
+  color: #666;
+  font-family: sans-serif;
+  font-weight: bold;
+}
+
+.social .info .date {
+  color: #999;
+  font-size: 20px;
+  font-style: italic;
+}
+
+.image {
+  margin: 1.5em 0 1.5em 0;
+  width: 690px;
+}
+
+.image img {
+  width: 100%;
+}
+
+.image.caption {
+  color: #999;
+  font-size: 18px;
+  font-style: italic;
+  padding: 5px 0 5px;
+  margin-top: -1.7em;
+  margin-bottom: 1.5em;
+  text-align: center;
+}
+
+.article {
+  dddborder: 1px solid black;
+  box-sizing: border-box;
+  color: #444;
+  font-size: 22px;
+  transform: translateX(-50%);
+  line-height: 33px;
+  margin-left: 50%;
+  width: 690px;
+
+  font-family: 'AvrileSerifRegular'; 
+  font-weight: normal; 
+  font-style: normal; 
+}
+
+.article a {
+  background-image: url("data:image/svg+xml;utf8,<svg preserveAspectRatio=\"none\" viewBox=\"0 0 1 20\" xmlns=\"http://www.w3.org/2000/svg\"><line x1=\"0\" y1=\"19\" x2=\"1\" y2=\"19\" stroke-width=\"1\" stroke=\"rgba(0, 0, 0, 0.5)\" /></svg>");
+  dddbackground-position: 0px calc(1em + 1px);
+  dddbackground-size: 1px 1px;
+  color: #444;
+  text-decoration: none;
+
+}
+
+.article a:hover {
+  background-image: url("data:image/svg+xml;utf8,<svg preserveAspectRatio=\"none\" viewBox=\"0 0 1 20\" xmlns=\"http://www.w3.org/2000/svg\"><line x1=\"0\" y1=\"19\" x2=\"1\" y2=\"19\" stroke-width=\"2\" stroke=\"rgba(0, 0, 0, 0.6)\" /></svg>");
+  color: #000;
+}
+
+.article b {
+  color: #444;
+}
+
+.article p {
+  margin: 1.5em 0 1.5em 0;
+}
+
+.article h3 {
+  color: #333;
+  font-family: sans-serif;
+  font-size: 26px;
+  margin: 1.5em 0 -0.5em 0;
+}

@@ -1,0 +1,79 @@
+<html>
+  <head>
+    <title>waxLit</title>
+    <link rel="stylesheet" data:prod="-" href="./style.css" />
+    <meta charset="UTF-8">
+    <!-- OpenGraph -->
+  </head>
+  <body class="editing">
+    <div class="page">
+      <div class="header">
+      </div>
+      <div class="article">
+        <div class="title">Contract Upgrade Wizardry: Rooted</div>
+        <div class="social">
+          <div class="clearfix"></div>
+          <div class="avatar"><img src="./profile.jpeg" /><div class="border"></div></div>
+          <div class="info">
+            <div class="name">RicMoo</div>
+            <div class="date">April 2<span class="sup">nd</span> &nbsp;&nbsp;&middot;&nbsp;&nbsp; 6 minute read</div>
+          </div>
+          <div class="clearfix"></div>
+        </div>
+
+<div>
+<div class="image"><img src="./image.jpeg" /></div>
+<div class="image caption">just another sprout in the wall...</div>
+
+<p>
+The power of <code>create2</code> is <b>absurd and awesome</b>, but it is still fairly difficult to use for even some fairly basic purposes.
+</p><p>
+One useful feature is the ability to deploy a contract which can have its code <b>arbitrarily updated</b> in the future, to deal with bugs or incorporate new functionality, such as new EIPs.
+</p><p>
+It should be noted that this can <b>greatly impact the trust-profile</b> of an Ethereum Smart Contract, so it may not be useful in many cases and upgrade paths should generally be well protected. For example, by providing a time-lock on upgrades, so users have the option (and adequate time) to leave if they don’t approve of the upgrade.
+</p>
+<h3>Why Upgrade?</h3>
+<p>
+Once an Ethereum contract has been deployed, traditionally there has been <b>no way to change its code</b>. This adds a certain level and a specific kind of trust, which while useful, means it is difficult to resolve certain problems.
+</p><p>
+The first reason to enable contract upgrades is to <b>correct bugs</b>. A bug can <a href="#">compromise</a> the security of a contract, render it <a href="#">unusable</a> or impact the user (or <a href="#">developer</a>) experience.
+</p>
+</div>
+<div id="inject">
+</div>
+
+      </div>
+      <div class="footer"></div>
+    </div>
+    <div class="editor">
+      <textarea id="editor"># This is a title
+This is a **test font** of __various italic__ styles ``code words``  ~~strike out~~  
+
+- This is a list
+- With three items
+- This one spans multiple lines
+here and 
+here
+
+```javascript
+and a block of code
+
+with new lines in it
+
+// Goodbye
+```
+
+And now back to a normal block of text.
+</textarea>
+    </div>
+    <script type="text/javascript">
+        const exports = { };
+        const module = { exports };
+        const require = function(thing) {
+          throw new Error("require not supported");
+        };
+    </script>
+    <script type="text/javascript" src="./lib/markdown.js"></script>
+    <script type="text/javascript" src="./script.js"></script>
+  </body>
+</html>
