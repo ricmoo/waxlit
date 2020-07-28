@@ -89,7 +89,6 @@ describe("IPFS", function () {
       const length = 2 ** 18 + 100;
       const data = ethers.utils.randomBytes(length);
       const cid = await Ipfs.put(data);
-      console.log("put succeeded", cid);
 
       const savedData = await Ipfs.get(cid.Key);
       assert.ok(savedData !== null, "failed to get from ipfs");

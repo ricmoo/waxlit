@@ -94,17 +94,16 @@ class PBNode {
     }
 
     if (links) {
-      const encodedLinks = ethers.utils.concat(
-        links.map((link) => {
-          return link.encode();
-        })
-      );
+      const tag = encodeTag("links", schema);
 
-      // tag, size, links
-      result.push(encodeTag("links", schema));
-      result.push(Varint.encode(encodedLinks.byteLength));
-      result.push(encodedLinks);
+      links.forEach((link) => {
+        const encoded = link.encode();
+        result.push(tag);
+        result.push(Varint.encode(encoded.length));
+        result.push(encoded);
+      });
     }
+
     return ethers.utils.concat(result);
   }
 
@@ -112,12 +111,6 @@ class PBNode {
     const schema: SchemaDefinition = Schemas[SchemaType.PBNODE];
     const result = ProtoBuf.parse(data, schema);
     if (result.links) {
-      if (result.data && result.data.constructor === Uint8Array) {
-        const parsed = PBData.parse(result.data);
-        if (parsed.byteLength > 0) {
-          throw new Error("Unexpected data");
-        }
-      }
       var promises: Array<Promise<Uint8Array>> = [];
       result.links.forEach(function (hash: Uint8Array) {
         promises.push(PBLink.parse(hash));
@@ -149,7 +142,7 @@ class PBLink {
     const schema: SchemaDefinition = Schemas[SchemaType.PBLINK];
 
     const result: Array<Uint8Array> = [];
-    const hash = ethers.utils.toUtf8Bytes(this.hash);
+    const hash = base58.decode(this.hash);
     const size = Varint.encode(this.tsize);
     const length = Varint.encode(hash.byteLength);
     result.push(encodeTag("hash", schema));
@@ -158,7 +151,8 @@ class PBLink {
     result.push(encodeTag("tsize", schema));
     result.push(size);
 
-    return ethers.utils.concat(result);
+    const finalResult = ethers.utils.concat(result);
+    return finalResult;
   }
 
   static parse(data: Uint8Array): Promise<Uint8Array> {
@@ -284,13 +278,13 @@ export class ProtoBuf {
     while (offset < data.length) {
       let varint = Varint.decode(data, offset);
       const v = varint.value;
-
-      offset += varint.length;
       const tag = schema.names[(v >>> 3) - 1];
 
       if (!tag) {
         throw new Error("unknown field - " + v);
       }
+
+      offset += varint.length;
 
       if (!tempResult[tag]) {
         tempResult[tag] = [];
@@ -314,24 +308,12 @@ export class ProtoBuf {
           }
           offset += varint.length;
 
-          /*   --- debug
-          if (tag === "links") {
-            console.log(
-              "tag",
-              tag,
-              databyte,
-              length,
-              data.slice(offset, offset + length)
-            );
-          }
-*/
           tempResult[tag].push(data.slice(offset, offset + length));
           offset += length;
           break;
         }
 
         default:
-          console.log("unsupported type - " + tag);
           throw new Error("unsupported type - " + tag);
       }
     }
