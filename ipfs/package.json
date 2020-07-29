@@ -1,0 +1,23 @@
+{
+  "name": "simple-ipfs-js",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "auto-build": "tsc -w",
+    "test": "mocha"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/assert": "^1.5.1",
+    "@types/mocha": "^7.0.2",
+    "@types/node": "^12.7.4",
+    "mocha": "^8.0.1",
+    "typescript": "3.8.3"
+  },
+  "dependencies": {
+    "ethers": "^5.0.5"
+  }
+}
