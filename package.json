@@ -4,6 +4,8 @@
   "description": "The waxLit library.",
   "main": "index.js",
   "dependencies": {
+    "@ethersproject/cli": "^5.0.2",
+    "solc": "^0.6.12",
     "typescript": "^3.9.7"
   },
   "devDependencies": {},
