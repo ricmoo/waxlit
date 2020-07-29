@@ -54,10 +54,12 @@ contract WaxLitSpool {
         // Safely get the address from the resolver
         bytes32 result = 0;
         assembly {
-            let status := staticcall(gasLimit, resolver, add(bytecode, 32), mload(bytecode), result, 32)
+            let status := staticcall(gasLimit, resolver, add(bytecode, 32), mload(bytecode), 0, 32)
 
             // There was an error; make sure the address is zero-ed out
-            if eq(status, 0) { result := 0 }
+            if eq(status, 1) {
+                result := mload(0)
+            }
         }
 
         // Result contains junk in the top (beyond address) bits
