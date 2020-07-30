@@ -2,3 +2,4 @@ node_modules
 lib
 ipfs/node_modules
 ipfs/dist
+dist
