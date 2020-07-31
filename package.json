@@ -4,11 +4,14 @@
   "description": "The waxLit library.",
   "main": "index.js",
   "dependencies": {
+    "aes-js": "3.0.0"
+  },
+  "devDependencies": {
     "@ethersproject/cli": "^5.0.2",
+    "@types/node": "^14.0.27",
     "solc": "^0.6.12",
     "typescript": "^3.9.7"
   },
-  "devDependencies": {},
   "scripts": {
     "auto-build": "npm run build -- -w",
     "build": "tsc --build ./tsconfig.json",
