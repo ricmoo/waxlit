@@ -4,7 +4,8 @@
   "description": "The waxLit library.",
   "main": "index.js",
   "dependencies": {
-    "aes-js": "3.0.0"
+    "aes-js": "3.0.0",
+    "ethers": "^5.0.8"
   },
   "devDependencies": {
     "@ethersproject/cli": "^5.0.2",
