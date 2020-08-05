@@ -1,5 +1,7 @@
 "use strict";
 
+import { Multihash } from "./multihash";
+
 function getBoundary(): string {
   let boundary = "--------------------------";
   for (let i = 0; i < 24; i++) {
@@ -11,12 +13,15 @@ function getBoundary(): string {
 export class FormData {
   headers: { [key: string]: string };
   payload: Buffer;
+  multihash: string;
 
   constructor(data: Uint8Array) {
     const boundary = getBoundary();
     this.headers = {
       "Content-Type": "multipart/form-data; boundary=" + boundary,
     };
+
+    this.multihash = Multihash.encode(data);
 
     const head =
       `--${boundary}\r\n` + "Content-Type:application/octet-stream\r\n\r\n";

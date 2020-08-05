@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Waxlit</title>
+  </head>
+  <body>
+    <h1>Content from ipfs:</h1>
+    <h2 id="elem1"></h2>
+    <h2 style="border: 2px;" id="elem2"></h2>
+
+    <script
+      type="text/javascript"
+      src="./node_modules/ethers/dist/ethers.umd.js"
+    ></script>
+    <script type="module">
+      import { Ipfs, Gateway } from "./dist/index.esm.js";
+      const elem1 = document.getElementById("elem1");
+
+      const gateway = new Gateway();
+      const ipfs = new Ipfs(gateway);
+
+      // https://gateway.ipfs.io/ipfs/Qmf6rtk5krq7ccUajjwSdJpF4W6F9gkUeGKGQyDjRro73n
+      // const cid = "QmWPyMW2u7J2Zyzut7TcBMT8pG6F2cB4hmZk1vBJFBt1nP";
+      //const cid = "Qmf6rtk5krq7ccUajjwSdJpF4W6F9gkUeGKGQyDjRro73n";
+      const cid = "Qmd2V777o5XvJbYMeMb8k2nU5f8d3ciUQ5YpYuWhzv8iDj";
+      ipfs
+        .get(cid)
+        .then((result) => {})
+        .catch((err) => {
+          elem1.textContent = err;
+        });
+
+      const randomData = ethers.utils.toUtf8Bytes("vulcan");
+      ipfs.put(randomData).then((res) => {
+        const elem2 = document.getElementById("elem2");
+        elem2.textContent = "successful put, hash=" + JSON.stringify(res);
+      });
+    </script>
+  </body>
+</html>
