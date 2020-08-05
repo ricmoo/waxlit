@@ -1,20 +1,7 @@
 "use strict";
 
 import { ethers } from "ethers";
-import { getUrl } from "./geturl";
-import { BaseX } from "@ethersproject/basex";
 import { Varint } from "./varint";
-import { Multihash } from "./multihash";
-import { FormData } from "./form-data";
-
-//const CHUNK_SIZE = 2 ** 18;
-const INFURA_IPFS_URL = "https://ipfs.infura.io:5001/api/v0/block";
-
-const base58 = new BaseX(
-  "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
-);
-
-const CHUNK_SIZE = 2 ** 18;
 
 // UnixFs data type
 enum UnixFsType {
@@ -27,9 +14,10 @@ enum UnixFsType {
 }
 
 // https://developers.google.com/protocol-buffers/docs/encoding
+//  varint => int32, int64, uint32, uint64, sint32, sint64, bool, enum
+//  varlength => string, bytes, embedded messages, packed repeated fields
 enum WireType {
   Varint = 0,
-  Fixed64 = 1,
   VarLength = 2,
 }
 
@@ -59,16 +47,17 @@ const Schemas: { [name: string]: SchemaDefinition } = {
   },
   [SchemaType.PBLINK]: {
     names: ["hash", "name", "tsize"],
-    types: [WireType.VarLength, WireType.VarLength, WireType.Fixed64],
+    types: [WireType.VarLength, WireType.VarLength, WireType.Varint],
   },
   [SchemaType.UNIXFS]: {
     names: ["type", "data", "filesize", "blocksize", "hashtype", "fanout"],
     types: [
       WireType.Varint,
       WireType.VarLength,
-      WireType.Fixed64,
-      WireType.Fixed64,
-      WireType.Fixed64,
+      WireType.Varint,
+      WireType.Varint,
+      WireType.Varint,
+      WireType.Varint,
     ],
   },
 };
@@ -78,7 +67,15 @@ function encodeTag(name: string, schema: SchemaDefinition): Uint8Array {
   return Varint.encode(((tag + 1) << 3) + schema.types[tag]);
 }
 
-class PBNode {
+export class PBNode {
+  links: Array<string>;
+  data: Uint8Array;
+
+  constructor(data?: Uint8Array, links?: Array<string>) {
+    this.links = links;
+    this.data = data;
+  }
+
   static encode(data?: Uint8Array, links?: Array<PBLink>): Uint8Array {
     const schema: SchemaDefinition = Schemas[SchemaType.PBNODE];
     const result: Array<Uint8Array> = [];
@@ -107,27 +104,25 @@ class PBNode {
     return ethers.utils.concat(result);
   }
 
-  static parse(data: Uint8Array): Promise<Uint8Array> {
+  static parse(rawData: Uint8Array): PBNode {
     const schema: SchemaDefinition = Schemas[SchemaType.PBNODE];
-    const result = ProtoBuf.parse(data, schema);
-    if (result.links) {
-      var promises: Array<Promise<Uint8Array>> = [];
-      result.links.forEach(function (hash: Uint8Array) {
-        promises.push(PBLink.parse(hash));
-      });
-      return Promise.all(promises).then(function (blocks) {
-        return ethers.utils.concat(blocks);
-      });
-    }
-    if (result.data && result.data.constructor === Uint8Array) {
-      return Promise.resolve(PBData.parse(result.data));
+    const node = ProtoBuf.parse(rawData, schema);
+    let links;
+    let data;
+
+    if (node.links) {
+      links = node.links.map((link: Uint8Array) => PBLink.parse(link));
     }
 
-    throw new Error("Missing links or data");
+    if (node.data && node.data.constructor === Uint8Array) {
+      data = PBData.parse(node.data);
+    }
+
+    return new PBNode(data, links);
   }
 }
 
-class PBLink {
+export class PBLink {
   hash: string;
   filename: string;
   tsize: number;
@@ -142,7 +137,7 @@ class PBLink {
     const schema: SchemaDefinition = Schemas[SchemaType.PBLINK];
 
     const result: Array<Uint8Array> = [];
-    const hash = base58.decode(this.hash);
+    const hash = ethers.utils.base58.decode(this.hash);
     const size = Varint.encode(this.tsize);
     const length = Varint.encode(hash.byteLength);
     result.push(encodeTag("hash", schema));
@@ -155,13 +150,14 @@ class PBLink {
     return finalResult;
   }
 
-  static parse(data: Uint8Array): Promise<Uint8Array> {
+  static parse(data: Uint8Array): string {
     const schema: SchemaDefinition = Schemas[SchemaType.PBLINK];
     const result = ProtoBuf.parse(data, schema);
     if (result.hash.length !== 34) {
       throw new Error(`unsupported hash ${ethers.utils.hexlify(result.hash)}`);
     }
-    return ProtoBuf.get(base58.encode(result.hash));
+
+    return ethers.utils.base58.encode(result.hash);
   }
 }
 
@@ -188,7 +184,7 @@ class PBData {
   static parse(data: Uint8Array): Uint8Array {
     const schema: SchemaDefinition = Schemas[SchemaType.UNIXFS];
     const result = ProtoBuf.parse(data, schema);
-    // result.filesize = 262144
+
     if (result.type !== UnixFsType.File) {
       throw new Error("unsupported type");
     }
@@ -203,73 +199,6 @@ class PBData {
 }
 
 export class ProtoBuf {
-  /*
-   * get from ipfs by multihash
-   */
-  static get(multihash: string): Promise<Uint8Array> {
-    const url = `${INFURA_IPFS_URL}/get?arg=${multihash}`;
-
-    return getUrl(url).then((res) => {
-      const hash = ethers.utils.sha256(res.body);
-      const hashFromCID = ethers.utils.hexlify(
-        base58.decode(multihash).slice(2)
-      );
-      if (hash !== hashFromCID) {
-        throw new Error("hash mismatch");
-      }
-
-      return PBNode.parse(res.body);
-    });
-  }
-
-  IpfsPut(data: Uint8Array, links: Array<PBLink>): Promise<any> {
-    const url = `${INFURA_IPFS_URL}/put`;
-    const encoded = PBNode.encode(data, links);
-    const multihash = Multihash.encode(encoded);
-    const formData = new FormData(encoded);
-
-    const options = {
-      method: "POST",
-      body: formData.payload,
-      headers: formData.headers,
-    };
-
-    return getUrl(url, options).then((res) => {
-      const result = JSON.parse(ethers.utils.toUtf8String(res.body));
-      if (!result.Key || result.Key !== multihash) {
-        const actual = result.Key ? result.Key : "missing";
-        throw new Error(
-          `Multihash mismatch, expected ${multihash} got ${actual}`
-        );
-      }
-      return result;
-    });
-  }
-
-  /*
-   * put file ipfs
-   */
-  async put(data: Uint8Array): Promise<any> {
-    const links: Array<PBLink> = [];
-    let result;
-    let end;
-
-    for (let offset = 0; offset < data.byteLength; offset = end) {
-      end = offset + CHUNK_SIZE;
-      const putResult = await this.IpfsPut(data.slice(offset, end), null);
-      const link = new PBLink(putResult.Key, null, putResult.size);
-      links.push(link);
-    }
-
-    if (links.length > 1) {
-      result = await this.IpfsPut(null, links);
-    } else if (links.length === 1) {
-      result = { Key: links[0].hash, size: links[0].tsize };
-    }
-
-    return result;
-  }
-
   static parse(data: Uint8Array, schema: SchemaDefinition): any {
     let tempResult: { [key: string]: Array<any> } = {};
     let result: { [key: string]: any } = {};
@@ -293,7 +222,6 @@ export class ProtoBuf {
       switch (v & 7) {
         // varint
         case WireType.Varint:
-        case WireType.Fixed64:
           varint = Varint.decode(data, offset);
           tempResult[tag].push(varint.value);
           offset += varint.length;

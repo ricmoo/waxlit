@@ -3,6 +3,9 @@
   "version": "0.0.1",
   "description": "The waxLit library.",
   "main": "index.js",
+  "browser": {
+    "ethers": "./lib/browser-ethers.js"
+  },
   "dependencies": {
     "aes-js": "3.0.0",
     "ethers": "^5.0.8"
@@ -11,12 +14,19 @@
     "@ethersproject/cli": "^5.0.2",
     "@types/node": "^14.0.27",
     "solc": "^0.6.12",
-    "typescript": "^3.9.7"
+    "typescript": "^3.9.7",
+    "mocha": "^8.1.0",
+    "rollup": "^2.23.0",
+    "rollup-plugin-commonjs": "^10.1.0",
+    "rollup-plugin-node-globals": "^1.4.0",
+    "rollup-plugin-node-resolve": "^5.2.0",
+    "rollup-plugin-terser": "^6.1.0"
   },
   "scripts": {
     "auto-build": "npm run build -- -w",
     "build": "tsc --build ./tsconfig.json",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dist": "rollup -c",
+    "test": "mocha"
   },
   "keywords": [
     "waxlit"

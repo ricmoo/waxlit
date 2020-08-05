@@ -1,9 +1,9 @@
 {
   "compilerOptions": {
     "esModuleInterop": true,
-    "lib": [ "es2015", "es5", "dom" ],
-    "module": "UMD",
-    "target": "es5",
+    "lib": ["es2015", "es5", "dom"],
+    "module": "commonjs",
+    "target": "es2015",
     "moduleResolution": "node",
 
     "outDir": "./lib/",

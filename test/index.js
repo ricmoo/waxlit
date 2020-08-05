@@ -1,15 +1,19 @@
 "use strict";
 
 const assert = require("assert");
-const { Ipfs } = require("../dist/index");
+const { Ipfs } = require("../lib/index");
 const ethers = require("ethers");
-const { Varint } = require("../dist/varint");
+const { Varint } = require("../lib/varint");
+const { Gateway } = require("../lib/gateway");
+
+const gateway = new Gateway();
+const ipfs = new Ipfs(gateway);
 
 describe("IPFS", function () {
   describe("block get", function () {
     it("should return data from small file", async function () {
       const multihash = "Qmd2V777o5XvJbYMeMb8k2nU5f8d3ciUQ5YpYuWhzv8iDj";
-      const data = await Ipfs.get(multihash);
+      const data = await ipfs.get(multihash);
       const regex = new RegExp("meeseek");
       assert.ok(
         regex.test(ethers.utils.toUtf8String(data)),
@@ -20,7 +24,7 @@ describe("IPFS", function () {
 
     it("should return data from large file", async function () {
       this.timeout(120000);
-      const data = await Ipfs.get(
+      const data = await ipfs.get(
         "QmQAsdPwfERkwHZ11Bz6cL85o6VU5cPThh4HPJXR2mDL1r"
       );
 
@@ -37,7 +41,7 @@ describe("IPFS", function () {
       // "QmXn9N1VCotpykz9s6YKs24miLHSyhMCEXBLPLua6znean" -- 6 byte file
       //const multihash = "QmQAsdPwfERkwHZ11Bz6cL85o6VU5cPThh4HPJXR2mDL1r";
       const multihash = "QmVzJ2cGEtQxn9ZK4VZYbUHib8gqvMGBzr3DixkGdgELKe";
-      const data = await Ipfs.get(multihash);
+      const data = await ipfs.get(multihash);
       //console.log("data", data);
       assert.ok(data !== null, "failed to get from ipfs");
     });
@@ -77,9 +81,9 @@ describe("IPFS", function () {
       this.timeout(120000);
 
       const data = Buffer.from("abcd");
-      const cid = await Ipfs.put(data);
+      const cid = await ipfs.put(data);
 
-      const savedData = await Ipfs.get(cid.Key);
+      const savedData = await ipfs.get(cid.Key);
       assert.ok(savedData !== null, "failed to get from ipfs");
     });
 
@@ -88,9 +92,9 @@ describe("IPFS", function () {
 
       const length = 2 ** 18 + 100;
       const data = ethers.utils.randomBytes(length);
-      const cid = await Ipfs.put(data);
+      const cid = await ipfs.put(data);
 
-      const savedData = await Ipfs.get(cid.Key);
+      const savedData = await ipfs.get(cid.Key);
       assert.ok(savedData !== null, "failed to get from ipfs");
     });
   });
