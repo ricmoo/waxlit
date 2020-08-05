@@ -12,14 +12,12 @@ interface Resolver {
 
 // Info Format
 // 1  byte     version 1
-// 21 bytes    reserved
+// 5  bytes    reserved
+// 16 bytes    secretSalt
 // 6  bytes    Article ID (used to de-dup revisions)
 // 4  bytes    Revision ID
 
 contract WaxLitSpool {
-
-    // The urrent version
-    uint8 constant VERSION = 0x01;
 
     // Mask for isolating the v and s from EIP-2098 vs
     bytes32 constant MASK_V = 0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
@@ -43,7 +41,7 @@ contract WaxLitSpool {
     //       unsafe. For this reason, we only allow calling it stsatically and
     //       with an upper gas limit, so the gas paid by a delegate cannot be
     //       nneedlessly drained or used for other purposes.
-    function isAuthorized(bytes32 nodehash, address addr, uint gasLimit) public returns (bool) {
+    function isAuthorized(bytes32 nodehash, address addr, uint gasLimit) view public returns (bool) {
 
         // We can trust the ENS contract
         address resolver = _ens.resolver(nodehash);
