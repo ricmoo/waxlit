@@ -2,6 +2,10 @@
 import aesjs from "aes-js";
 import { ethers } from "ethers";
 
+const { Ipfs } = require("./ipfs");
+const { Gateway } = require("./gateway");
+
+const ipfs = new Ipfs(new Gateway());
 
 const _constructorGuard = {};
 
@@ -32,7 +36,7 @@ function getSpoolContract(provider: ethers.providers.Provider): ethers.Contract 
 export interface ArticleInfo {
     readonly articleId: number;
     readonly revision: number;
-    readonly secretSalt: string;
+    readonly secretKey: string;
     readonly hash: string;
     readonly blockNumber: number;
     readonly transaction: string;
@@ -76,8 +80,8 @@ export class Article {
 
     async save(key: string): Promise<string> {
         const data = this.encrypt(key);
-        console.log(data);
-        return null;
+        const result = await ipfs.put(data);
+        return result.Key;
     }
 
     static async listArticles(provider: ethers.providers.Provider, ensName: string): Promise<Array<ArticleInfo>> {
@@ -96,24 +100,29 @@ export class Article {
                 const version = ethers.BigNumber.from(log.args[1]).shr(8 * 31).toNumber();
                 if (version !== 1) { throw new Error("unsupported version"); }
 
-                const secretSalt = ethers.utils.hexZeroPad(ethers.BigNumber.from(log.args[1]).shr(8 * 10).mask(8 * 16).toHexString(), 16);
+                const secretKey = ethers.utils.hexZeroPad(ethers.BigNumber.from(log.args[1]).shr(8 * 10).mask(8 * 16).toHexString(), 16);
                 const articleId = ethers.BigNumber.from(log.args[1]).shr(8 * 4).mask(8 * 6).toNumber();
                 const revision = ethers.BigNumber.from(log.args[1]).shr(8 * 0).mask(8 * 4).toNumber();
                 const hashBin = ethers.utils.concat([ [ 18, 32 ], log.args[2] ]);
                 const hash = ethers.utils.base58.encode(hashBin);
 
                 if (articles[articleId] == null || articles[articleId].revision < revision) {
-                    articles[articleId] = { articleId, blockNumber, hash, transaction, revision, secretSalt };
+                    articles[articleId] = { articleId, blockNumber, hash, transaction, revision, secretKey };
                 }
             } catch (error) {
                 console.log("Error processing article entry", error);
             }
         });
 
-        const result = Object.values(articles).filter((ai) => !ethers.BigNumber.from(ai.secretSalt).isZero());
+        const result = Object.values(articles).filter((ai) => !ethers.BigNumber.from(ai.secretKey).isZero());
         result.sort((a, b) => (a.articleId - b.articleId));
 
         return result;
+    }
+
+    static async fromArticleInfo(articleInfo: ArticleInfo): Promise<Article> {
+        const article = await Article.load(articleInfo.secretKey, articleInfo.hash);
+        return article;
     }
 
     static from(title: string, body: string): Article {
@@ -151,20 +160,25 @@ export class Article {
         throw new Error("incorrect key");
     }
 
-    static async load(key: string, multihash: string): Promise<void> {
-        return null;
+    static async load(key: string, hash: string): Promise<Article> {
+        const data = await ipfs.get(hash);
+        return Article.decrypt(key, data);
     }
 }
 
+/*
 (async function() {
     const key = "0x01234567012345670123456701234567";
     const art = Article.from("Hello World", "My body, my rules");
     const hash = await art.save(key);
     console.log(hash);
-    const data = art.encrypt(key)
-    const orig = Article.decrypt(key, data);
-    console.log(ethers.utils.hexlify(data), orig);
+    const loadedArt = await Article.load(key, "QmVjjLMHZLr8p7ycyacBYGGgveAoTXMvtMwberccWUvDFY");
+    console.log("Loaded:", loadedArt);
+    //const data = art.encrypt(key)
+    //const orig = Article.decrypt(key, data);
+    //console.log(ethers.utils.hexlify(data), orig);
 
     const articles = await Article.listArticles(ethers.getDefaultProvider("ropsten"), "ricmoose.eth");
     console.log(articles);
 })();
+*/
