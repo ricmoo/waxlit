@@ -28,21 +28,13 @@ export class Ipfs {
     return ethers.utils
       ._fetchData(url.href)
       .then((res) => {
-        const hash = ethers.utils.sha256(res);
-        const hashFromCID = ethers.utils.hexlify(
-          ethers.utils.base58.decode(multihash).slice(2)
-        );
-
-        if (hash !== hashFromCID) {
+        if (Multihash.encode(res) !== multihash) {
           throw new Error("hash mismatch");
         }
 
         const node = PBNode.parse(res);
         if (node.links) {
-          var promises: Array<Promise<Uint8Array>> = [];
-          node.links.forEach((hash) => {
-            promises.push(this.get(hash));
-          });
+          const promises = node.links.map((hash) => this.get(hash));
           return Promise.all(promises).then((blocks) =>
             ethers.utils.concat(blocks)
           );
@@ -54,7 +46,7 @@ export class Ipfs {
         throw new Error("Missing links or data");
       })
       .catch((err) => {
-        this.gateway.markError(url.origin);
+        this.gateway.markGatewayError(url.origin);
         return this.get(multihash);
       });
   }
@@ -88,7 +80,7 @@ export class Ipfs {
           err.reason,
           err.status
         );
-        this.gateway.markError(url.origin);
+        this.gateway.markPinnerError(url.origin);
         return this.putNode(formData);
       });
   }
