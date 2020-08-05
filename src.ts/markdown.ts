@@ -118,12 +118,10 @@ function _parseParagraph(markdown: string): InlineNode {
     const candidates: Array<Candidate> = [ ];
 
     (function (matchStyle) {
-    console.log(matchStyle);
         if (matchStyle == null) { return; }
 
         const open = matchStyle[1].length;
         const close = markdown.indexOf(matchStyle[2], open + 2);
-        console.log(open, close);
 
         if (close === -1) {
             return;
