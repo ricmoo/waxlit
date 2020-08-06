@@ -146,7 +146,7 @@ class App {
         };
     }
 
-    async renderBanner(): Promise<void> {
+    async startBanner(): Promise<void> {
         const nodehash = ethers.utils.namehash(this.ensName);
         console.log(nodehash);
 
@@ -219,6 +219,8 @@ class App {
     }
 
     setupEditor(markdown?: string): void {
+        document.body.classList.add("editing");
+
         const ethereum = (<any>window).ethereum;
 
         //const buttonAdd = document.getElementById("button-add");
@@ -382,25 +384,22 @@ class App {
         }).filter((p) => !!p).join("&");
     }
 
-    startEditor(markdown?: string): void {
-        document.body.classList.add("editing");
-        this.setupEditor(markdown);
-    }
-
-    startPreview(): void {
-        Article.load(this.secretKey, this.hash).then((article) => {
+    async startPreview(): Promise<void> {
+        await Article.load(this.secretKey, this.hash).then((article) => {
             this.renderMarkdown(article.body);
         });
     }
 
-    startView(articleInfo: ArticleInfo): void {
-        this.provider.getBlock(articleInfo.blockNumber).then((block) => {
+    async startView(articleInfo: ArticleInfo): Promise<void> {
+        const setupDate = this.provider.getBlock(articleInfo.blockNumber).then((block) => {
             this.renderDate(new Date(block.timestamp * 1000));
         });
 
-        Article.load(articleInfo.secretKey, articleInfo.hash).then((article) => {
+        const setupArticle = Article.load(articleInfo.secretKey, articleInfo.hash).then((article) => {
             this.renderMarkdown(article.body);
         });
+
+        await Promise.all([ setupDate, setupArticle ]);
     }
 
     get isDev(): boolean {
@@ -431,6 +430,8 @@ class App {
     async start(): Promise<void> {
         console.log("Starting app...");
 
+        const promises: Array<Promise<any>> = [ ];
+
         this.setupInterface();
 
         const comps = location.hostname.split(".");
@@ -441,12 +442,12 @@ class App {
                 ethers.utils.defineReadOnly(this, "secretKey", params.key);
                 ethers.utils.defineReadOnly(this, "hash", params.hash);
                 ethers.utils.defineReadOnly(this, "ensName", params.ens);
-                this.renderBanner();
-                this.startPreview();
+                promises.push(this.startBanner());
+                promises.push(this.startPreview());
 
             } else if (params.action === "edit") {
                 ethers.utils.defineReadOnly(this, "ensName", params.ens);
-                this.renderBanner();
+                promises.push(this.startBanner());
 
                 if (params.article) {
                     ethers.utils.defineReadOnly(this, "articleId", parseInt(params.article));
@@ -461,19 +462,19 @@ class App {
                     ethers.utils.defineReadOnly(this, "hash", info.hash);
 
                     const article = await Article.load(this.secretKey, this.hash);
-                    this.startEditor(article.body);
+                    this.setupEditor(article.body);
 
                 } else if (params.hash) {
                     ethers.utils.defineReadOnly(this, "hash", params.hash);
                     ethers.utils.defineReadOnly(this, "secretKey", params.key);
 
                     const article = await Article.load(this.secretKey, this.hash);
-                    this.startEditor(article.body);
+                    this.setupEditor(article.body);
                     this.renderPreview(this.secretKey, this.hash);
 
                 } else {
                     ethers.utils.defineReadOnly(this, "secretKey", params.key);
-                    this.startEditor();
+                    this.setupEditor();
                 }
 
             } else {
@@ -482,7 +483,7 @@ class App {
 
         } else if (comps.length === 3) {
             ethers.utils.defineReadOnly(this, "ensName", comps[0] + ".eth");
-            this.renderBanner();
+            promises.push(this.startBanner());
 
             let articleId: number = null;
             if (this.isDev) {
@@ -494,13 +495,18 @@ class App {
             const info = await this.getArticleInfo(articleId); //articles.filter((a) => a.articleId === articleId)[0];
 
             if (info) {
-                this.startView(info);
+                promises.push(this.startView(info));
             } else {
                 alert(`article ${ articleId } not found for ${ this.ensName }.`);
             }
         }
 
-        console.log(await Article.listArticles(this.provider, this.ensName));
+        console.log("Waiting for", promises);
+        await Promise.all(promises);
+
+        // Show the content
+        document.getElementById("curtain").classList.add("hidden");
+        document.getElementById("page").classList.remove("hidden");
     }
 }
 
