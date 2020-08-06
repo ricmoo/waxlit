@@ -8,8 +8,12 @@ import { FormData } from "./form-data";
 
 const CHUNK_SIZE = 2 ** 18;
 
-function makeNode(data: Uint8Array, links: Array<PBLink>): any {
-  const encoded = PBNode.encode(data, links);
+function makeNode(
+  data: Uint8Array,
+  filesize: number,
+  links: Array<PBLink>
+): any {
+  const encoded = PBNode.encode(data, filesize, links);
   const formData = new FormData(encoded);
   const multihash = Multihash.encode(encoded);
   return { headers: formData.headers, payload: formData.payload, multihash };
@@ -108,7 +112,7 @@ export class Ipfs {
 
     for (let offset = 0; offset < data.byteLength; offset = end) {
       end = offset + CHUNK_SIZE;
-      const node = makeNode(data.slice(offset, end), null);
+      const node = makeNode(data.slice(offset, end), data.byteLength, null);
       promises.push(this.putNode(node));
     }
 
@@ -124,7 +128,7 @@ export class Ipfs {
       const links = result.map((link) => {
         return new PBLink(link.Key, null, link.Size);
       });
-      const node = makeNode(null, links);
+      const node = makeNode(new Uint8Array([]), data.byteLength, links);
       return this.putNode(node);
     });
   }
