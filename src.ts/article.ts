@@ -32,6 +32,23 @@ function getSpoolContract(provider: ethers.providers.Provider): ethers.Contract 
     return new ethers.Contract(spoolAddress, spoolAbi, provider);
 }
 
+const VERSION = ethers.BigNumber.from(1);
+export function getArticleInfo(article: number, revision: number, secretKey: ethers.utils.BytesLike): string {
+    const articleId = ethers.BigNumber.from(article);
+    if (!articleId.shr(8 * 6).isZero()) { throw new Error("articleId too large"); }
+
+    const revisionId = ethers.BigNumber.from(revision);
+    if (!revisionId.shr(8 * 4).isZero()) { throw new Error("revisionId too large"); }
+
+    const secret = ethers.BigNumber.from(secretKey);
+    if (!secret.shr(8 * 16).isZero()) { throw new Error("secret too large"); }
+
+    return ethers.utils.hexZeroPad(ethers.constants.Zero
+           .or(VERSION.shl(8 * 31))
+           .or(secret.shl(8 * 10))
+           .or(articleId.shl(8 * 4))
+           .or(revisionId.shl(8 * 0)).toHexString(), 32);
+}
 
 export interface ArticleInfo {
     readonly articleId: number;
@@ -43,20 +60,17 @@ export interface ArticleInfo {
 }
 
 export class Article {
-    readonly title: string;
     readonly body: string;
 
-    constructor(constructorGuard: any, title: string, body: string) {
+    constructor(constructorGuard: any, body: string) {
         if (constructorGuard !== _constructorGuard) {
             throw new Error("do not constructor");
         }
-        this.title = title;
         this.body = body;
     }
 
     payload(salt: string): string {
         return JSON.stringify({
-            title: this.title,
             body: this.body,
             salt: salt
         });
@@ -78,10 +92,22 @@ export class Article {
         ]);
     }
 
-    async save(key: string): Promise<string> {
+    async save(key: ethers.utils.BytesLike): Promise<string> {
         const data = this.encrypt(key);
         const result = await ipfs.put(data);
         return result.Key;
+    }
+
+    async publishTransaction(ensName: string, key: ethers.utils.BytesLike, articleId: number, revisionId: number): Promise<ethers.providers.TransactionRequest> {
+        const hash = await this.save(key);
+        const contract = getSpoolContract(ethers.getDefaultProvider())
+        const tx = await contract.populateTransaction.postArticles(
+            [ ethers.utils.namehash(ensName) ],
+            [ getArticleInfo(articleId, revisionId, key) ],
+            [ ethers.utils.base58.decode(hash).slice(2) ]
+        );
+
+        return tx;
     }
 
     static async listArticles(provider: ethers.providers.Provider, ensName: string): Promise<Array<ArticleInfo>> {
@@ -125,8 +151,8 @@ export class Article {
         return article;
     }
 
-    static from(title: string, body: string): Article {
-        return new Article(_constructorGuard, title, body);
+    static from(body: string): Article {
+        return new Article(_constructorGuard, body);
     }
 
     static decrypt(key: ethers.utils.BytesLike, data: Uint8Array): Article {
@@ -154,13 +180,14 @@ export class Article {
             if (ethers.utils.hexlify(salt) !== ethers.utils.hexlify(saltCheck)) {
                 throw new Error("incorrect key");
             }
-            return new Article(_constructorGuard, content.title, content.body);
+            return new Article(_constructorGuard, content.body);
         } catch (error) { }
 
         throw new Error("incorrect key");
     }
 
-    static async load(key: string, hash: string): Promise<Article> {
+    static async load(key: ethers.utils.BytesLike, hash: string): Promise<Article> {
+        console.log(hash);
         const data = await ipfs.get(hash);
         return Article.decrypt(key, data);
     }

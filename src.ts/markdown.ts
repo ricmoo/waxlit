@@ -223,7 +223,7 @@ export function parseMarkdown(markdown: string): Array<BlockNode> {
 
     const clearCode = function() {
         const language = currentBlock.shift().substring(3) || null;
-        blocks.push(new CodeNode(currentBlock.join("\n"), language));
+        blocks.push(new CodeNode(currentBlock.join("\n").trim(), language));
         inCode = false;
         currentBlock = [ ];
     };

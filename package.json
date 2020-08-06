@@ -25,7 +25,7 @@
   "scripts": {
     "auto-build": "npm run build -- -w",
     "build": "tsc --build ./tsconfig.json",
-    "dist": "rollup -c",
+    "dist": "rollup -c && cp ./node_modules/ethers/dist/ethers.umd.js ./dist/ethers.umd.js",
     "test": "mocha"
   },
   "keywords": [

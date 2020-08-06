@@ -1,6 +1,8 @@
 "use strict";
 
+import { start } from "./app";
+import { Article } from "./article";
 import { Gateway } from "./gateway";
 import { Ipfs } from "./ipfs";
 
-export { Ipfs, Gateway };
+export { Article, Ipfs, Gateway, start };
