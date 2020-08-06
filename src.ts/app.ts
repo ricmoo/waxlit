@@ -8,6 +8,7 @@ import {
     CodeNode as MarkdownCodeNode,
     ElementNode as MarkdownElementNode,
     ImageNode as MarkdownImageNode,
+    LinkNode as MarkdownLinkNode,
     ListNode as MarkdownListNode,
     ParentNode as MarkdownParentNode,
     SubtitleNode as MarkdownSubtitleNode,
@@ -68,6 +69,11 @@ function renderBlock(node: MarkdownNode): Node {
             divCaption.classList.add("image");
             divCaption.appendChild(document.createTextNode(node.caption));
         }
+
+    } else if (node instanceof MarkdownLinkNode) {
+        element = document.createElement("a");
+        (<HTMLElement>element).setAttribute("href", node.href);
+        (<HTMLElement>element).appendChild(document.createTextNode(node.title));
 
     } else if (node instanceof MarkdownListNode) {
         element = document.createElement("ul");

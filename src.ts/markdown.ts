@@ -101,6 +101,17 @@ export class ElementNode extends ParentNode implements InlineNode {
     }
 }
 
+export class LinkNode extends Node implements InlineNode {
+    href: string;
+    title: string;
+
+    constructor(href: string, title: string) {
+        super();
+        this.href = href;
+        this.title = title;
+    }
+}
+
 export class TextNode extends Node implements InlineNode {
     text: string;
 
@@ -182,8 +193,43 @@ function _parseParagraph(markdown: string): InlineNode {
         });
     })(markdown.match(/^((?:.|\n)*?)(\*\*|\/\/|__|\^\^|~~|``)((?:.|\n)*)$/));
 
+    (function(match) {
+        if (match == null) { return; }
+
+        candidates.push({
+            offset: match[1].length,
+            process: () => {
+                const result: Array<InlineNode> = [ ];
+                if (match[1]) {
+                    result.push(new TextNode(match[1]));
+                }
+                result.push(new LinkNode(match[3], match[2]));
+
+                if (match[4]) {
+                    const tail = _parseParagraph(match[4]);
+                    if (tail instanceof ElementNode && tail.type == null) {
+                        tail.children.forEach((child) => {
+                            result.push(child);
+                        });
+                    } else {
+                        result.push(tail);
+                    }
+                }
+
+                if (result.length === 1) { return result[0]; }
+                return new ElementNode(null, result);
+            }
+        });
+    })(markdown.match(/^((?:.|\n)*?)\[([^\x5d]*)\]\(([^)]*)\)((?:.|\n)*)$/));
+
     if (candidates.length) {
-        return candidates[0].process();
+        let first: Candidate = null;
+        candidates.forEach((candidate) => {
+            if (first == null || candidate.offset < first.offset) {
+                first = candidate;
+            }
+        });
+        return first.process();
     }
 
     return new TextNode(markdown);
