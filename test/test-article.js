@@ -10,16 +10,14 @@ describe("Article", function () {
     this.timeout(120000);
 
     const key = "0x01234567012345670123456701234567";
-    const title = "Hello World";
     const body = "My body, my rules";
-    const art = Article.from(title, body);
+    const art = Article.from(body);
     const hash = await art.save(key);
     console.log("Saved:", hash);
 
     const loadedArt = await Article.load(key, hash);
     console.log("Loaded:", loadedArt);
 
-    assert.equal(loadedArt.title, title, "title mismatch");
     assert.equal(loadedArt.body, body, "body mismatch");
 
     const articles = await Article.listArticles(
