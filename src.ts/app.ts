@@ -15,6 +15,8 @@ import {
     TitleNode as MarkdownTitleNode,
 } from "./markdown";
 import { parseMarkdown } from "./markdown";
+import { Ipfs } from "./ipfs";
+import { Gateway } from "./gateway";
 
 const Types: { [ tag: string ]: string } = {
     "bold": "b",
@@ -22,6 +24,10 @@ const Types: { [ tag: string ]: string } = {
     "italic": "i",
     "strikeout": "strike",
     "underline": "u",
+}
+
+interface HTMLInputEvent extends Event {
+    target: HTMLInputElement & EventTarget;
 }
 
 
@@ -93,8 +99,13 @@ class App {
     readonly ensName: string;
     readonly articleId: number;
 
+    readonly ipfs: Ipfs;
+    readonly gateway: Gateway;
+
     constructor(provider: ethers.providers.Provider) {
         this.provider = provider;
+        this.gateway = new Gateway();
+        this.ipfs = new Ipfs(this.gateway);
     }
 
     renderMarkdown(markdown: string): void {
@@ -212,6 +223,8 @@ class App {
 
         //const buttonAdd = document.getElementById("button-add");
         const buttonSave = document.getElementById("button-save");
+        const buttonUpload = document.getElementById("button-upload");
+        const fileDialog = document.getElementById("file-dialog");
 
         const textarea: HTMLInputElement = <HTMLInputElement>(document.getElementById("editor"));
         textarea.oninput = () => {
@@ -243,6 +256,28 @@ class App {
             }, (error) => {
                 console.log(error);
             });
+        };
+
+        buttonUpload.onclick = () => {
+            fileDialog.click();
+        };
+
+        fileDialog.onchange = (event?: HTMLInputEvent) => {
+            const input = event.target;
+
+            const reader = new FileReader();
+            reader.onload = async () => {
+                const image = new Uint8Array(<ArrayBuffer>(reader.result));
+                console.log('reader.result', image.length);
+                try {
+                    const result = await this.ipfs.put(image);
+                    textarea.value += ` [](${this.gateway.getTrustedUrl(result.Key)})`;
+                    console.log('put result', result);
+                } catch (err) {
+                    console.log('put image error', err);
+                }
+            };
+            reader.readAsArrayBuffer(input.files[0]);
         };
 
         if (ethereum) {

@@ -5,6 +5,7 @@ const { Ipfs } = require("../lib/index");
 const ethers = require("ethers");
 const { Varint } = require("../lib/varint");
 const { Gateway } = require("../lib/gateway");
+const fs = require("fs");
 
 const gateway = new Gateway();
 const ipfs = new Ipfs(gateway);
@@ -96,6 +97,32 @@ describe("IPFS", function () {
 
       const savedData = await ipfs.get(cid.Key);
       assert.ok(savedData !== null, "failed to get from ipfs");
+    });
+
+    it.skip("image", async function () {
+      //this.timeout(120000);
+      //"/Users/yuetloo/Downloads/neo-still-1.png"
+      /*const sourceFile = "mage.jpeg";
+      const image = fs.readFileSync(sourceFile);
+      const result = await ipfs.put(image);
+      console.log("saved image", cid);
+
+      const cid = "QmciizQHh7Yy9AaVua8FwwUMEP57cnpCNeREfMbXcbTYXi";
+      const savedData = await ipfs.get(cid);
+      ///Users/yuetloo/Downloads/neo-still-2.png
+      const targetFile = "/Users/yuetloo/Downloads/image3.jpeg";
+      fs.writeFileSync(targetFile, savedData);
+      assert.ok(savedData !== null, "failed to get from ipfs");
+      */
+    });
+  });
+
+  describe("Gateway", function () {
+    it("getTrustedUrl", function () {
+      const cid = "QmPks7eJyJUW9oXYkCAk8PJZDh9rALGi5xrBBgijrrsu7i";
+      const url = gateway.getTrustedUrl(cid);
+      console.log("url", url);
+      assert.ok(url.endsWith(cid), "url missing cid");
     });
   });
 });

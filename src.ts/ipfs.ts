@@ -15,6 +15,11 @@ function makeNode(data: Uint8Array, links: Array<PBLink>): any {
   return { headers: formData.headers, payload: formData.payload, multihash };
 }
 
+type PutResult = {
+  Key: string;
+  Size: number;
+};
+
 export class Ipfs {
   gateway: Gateway;
 
@@ -24,6 +29,10 @@ export class Ipfs {
 
   // get data from ipfs by multihash
   get(multihash: string): Promise<Uint8Array> {
+    if (!multihash) {
+      throw new Error("Get error: missng multihash");
+    }
+
     const url = this.gateway.getUrl(multihash);
     return ethers.utils
       ._fetchData(url.href)
@@ -46,12 +55,19 @@ export class Ipfs {
         throw new Error("Missing links or data");
       })
       .catch((err) => {
+        console.log(
+          "get error",
+          err.url,
+          err.requestMethod,
+          err.reason,
+          err.status
+        );
         this.gateway.markGatewayError(url.origin);
         return this.get(multihash);
       });
   }
 
-  putNode(formData: FormData): Promise<any> {
+  putNode(formData: FormData): Promise<PutResult> {
     const url = this.gateway.putUrl();
 
     const connection = {
@@ -86,8 +102,8 @@ export class Ipfs {
   }
 
   // put data in ipfs and returns the multihash
-  put(data: Uint8Array): Promise<string> {
-    const promises: Array<Promise<{ Key: string; size: number }>> = [];
+  put(data: Uint8Array): Promise<PutResult> {
+    const promises: Array<Promise<PutResult>> = [];
     let end;
 
     for (let offset = 0; offset < data.byteLength; offset = end) {
@@ -106,7 +122,7 @@ export class Ipfs {
       }
 
       const links = result.map((link) => {
-        return new PBLink(link.Key, null, link.size);
+        return new PBLink(link.Key, null, link.Size);
       });
       const node = makeNode(null, links);
       return this.putNode(node);

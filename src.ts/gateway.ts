@@ -8,6 +8,12 @@ const IPFS_GATEWAYS = [
   "https://gateway.ipfs.io",
 ];
 
+const IPFS_TRUSTED_GATEWAYS = [
+  "https://ipfs.infura.io",
+  "https://gateway.ipfs.io",
+  "https://ipfs.io",
+];
+
 // only ipfs pinning service can put block
 // use infura service for now as other providers (pinata, textile, temporal)
 // all require authentication
@@ -20,6 +26,7 @@ type Providers = {
 };
 
 export class Gateway {
+  gatewaysTrusted: Providers;
   gateways: Providers;
   pinners: Providers;
   timeoutGrace: number;
@@ -30,6 +37,10 @@ export class Gateway {
       : TIMEOUT_GRACE;
 
     this.gateways = IPFS_GATEWAYS.reduce((gateways, url) => {
+      return Object.assign(gateways, { [url]: { lastError: 0 } });
+    }, {});
+
+    this.gatewaysTrusted = IPFS_TRUSTED_GATEWAYS.reduce((gateways, url) => {
       return Object.assign(gateways, { [url]: { lastError: 0 } });
     }, {});
 
@@ -54,6 +65,10 @@ export class Gateway {
 
     const index = Math.floor(Math.random() * activeProviders.length);
     return activeProviders[index];
+  }
+
+  getTrustedUrl(multihash: string): string {
+    return `${this.url(this.gatewaysTrusted)}/ipfs/${multihash}`;
   }
 
   getUrl(multihash: string): URL {
