@@ -7,6 +7,7 @@ import {
     Node as MarkdownNode,
     CodeNode as MarkdownCodeNode,
     ElementNode as MarkdownElementNode,
+    ImageNode as MarkdownImageNode,
     ListNode as MarkdownListNode,
     ParentNode as MarkdownParentNode,
     SubtitleNode as MarkdownSubtitleNode,
@@ -23,7 +24,6 @@ const Types: { [ tag: string ]: string } = {
     "underline": "u",
 }
 
-const baseUrl = "http://waxlit.local:8001";
 
 function renderBlock(node: MarkdownNode): Node {
     let element: Node = null;
@@ -42,6 +42,26 @@ function renderBlock(node: MarkdownNode): Node {
     } else if (node instanceof MarkdownTitleNode) {
         element = document.createElement("h2");
         element.appendChild(document.createTextNode(node.title));
+
+    } else if (node instanceof MarkdownImageNode) {
+        element = document.createElement("div");
+
+        // @TODO: Prolly want to sanitize src?
+        const img = document.createElement("img");
+        img.setAttribute("src", node.src);
+
+        const divImg = document.createElement("div");
+        (<HTMLElement>element).appendChild(divImg);
+        divImg.classList.add("image");
+        divImg.appendChild(img);
+
+        if (node.caption) {
+            const divCaption = document.createElement("div");
+            (<HTMLElement>element).appendChild(divCaption);
+            divCaption.classList.add("caption");
+            divCaption.classList.add("image");
+            divCaption.appendChild(document.createTextNode(node.caption));
+        }
 
     } else if (node instanceof MarkdownListNode) {
         element = document.createElement("ul");
@@ -71,6 +91,7 @@ class App {
     readonly secretKey: string;
     readonly hash: string;
     readonly ensName: string;
+    readonly articleId: number;
 
     constructor(provider: ethers.providers.Provider) {
         this.provider = provider;
@@ -101,8 +122,41 @@ class App {
         document.getElementById("button-new").onclick = () => {
             const ensName = prompt("What is your ENS name?");
             const key = ethers.utils.hexlify(ethers.utils.randomBytes(16));
-            window.open(`${ baseUrl }/#action=edit&ens=${ ensName }&key=${ key }`, "_blank");
+            window.open(`${ this.getBaseUrl() }#action=edit&ens=${ ensName }&key=${ key }`, "_blank");
         };
+
+        document.getElementById("button-edit").onclick = () => {
+            console.log(this);
+            if (this.articleId) {
+                window.open(`${ this.getBaseUrl() }#action=edit&ens=${ this.ensName }&article=${ this.articleId }`, "_blank");
+            } else {
+                window.open(`${ this.getBaseUrl() }#action=edit&ens=${ this.ensName }&key=${ this.secretKey }&hash=${ this.hash }`, "_blank");
+            }
+        };
+    }
+
+    async renderBanner(): Promise<void> {
+        const nodehash = ethers.utils.namehash(this.ensName);
+        console.log(nodehash);
+
+        const network = await this.provider.getNetwork();
+        const ens = new ethers.Contract(network.ensAddress, [
+            "function resolver(bytes32 node) view returns (address)"
+        ], this.provider);
+
+        const resolverAddr = await ens.resolver(nodehash);
+        const resolver = new ethers.Contract(resolverAddr, [
+            "function text(bytes32 nodehash, string key) view returns (string)"
+        ], this.provider);
+
+        const { avatar } = await ethers.utils.resolveProperties({
+            avatar: resolver.text(nodehash, "avatar")
+        });
+        // @TODO: USe default image
+        console.log(avatar);
+
+        document.getElementById("avatar").setAttribute("src", avatar);
+        document.getElementById("name").textContent = this.ensName.split(".")[0];
     }
 
     renderDate(date: Date): void {
@@ -141,7 +195,7 @@ class App {
         const preview = document.getElementById("preview");
 
         previewContainer.classList.add("enabled");
-        preview.setAttribute("href", `${ baseUrl }/#action=preview&ens=${ this.ensName  }&key=${ key }&hash=${ hash }`);
+        preview.setAttribute("href", `${ this.getBaseUrl() }#action=preview&ens=${ this.ensName  }&key=${ key }&hash=${ hash }`);
     }
 
     renderPublishLink(articleId: number): void {
@@ -150,10 +204,12 @@ class App {
 
         container.classList.add("enabled");
 
-        link.setAttribute("href", baseUrl.replace(":/\/", ":/\/" + this.ensName.split(".")[0] + ".") + ((baseUrl.indexOf("local") >= 0) ? "?": "") + articleId);
+        link.setAttribute("href", this.getBaseUrl(this.ensName) + (this.isDev ? "?": "") + articleId);
     }
 
     setupEditor(markdown?: string): void {
+        const ethereum = (<any>window).ethereum;
+
         //const buttonAdd = document.getElementById("button-add");
         const buttonSave = document.getElementById("button-save");
 
@@ -178,10 +234,10 @@ class App {
 
         buttonSave.onclick = () => {
             const content = textarea.value;
-            console.log("HH", this);
             Article.from(content).save(this.secretKey).then((hash) => {
                 if (content === textarea.value) {
                     textarea.classList.add("saved");
+                    this.updateParameters({ hash });
                     this.renderPreview(this.secretKey, hash);
                 }
             }, (error) => {
@@ -189,11 +245,13 @@ class App {
             });
         };
 
-        const ethereum = (<any>window).ethereum;
         if (ethereum) {
             const buttonPublish = document.getElementById("button-publish");
             buttonPublish.classList.add("enabled");
+
             buttonPublish.onclick = async () => {
+                const content = textarea.value;
+
                 let enabled = false;
                 if (ethereum.enable) {
                     enabled = await ethereum.enable();
@@ -218,17 +276,39 @@ class App {
                 }
 
                 const articles = await Article.listArticles(this.provider, this.ensName);
+
+                // Defaults for a new (first) article
                 let revision = 1;
                 let articleId = 11;
-                if (articles.length) {
+
+                if (this.articleId != null) {
+                    // We are modifying an existing article...
+                    articleId = this.articleId;
+
+                    // Find the current revision and increment this revision
+                    const info = articles.filter((a) => (a.articleId === articleId))[0];
+                    if (!info) {
+                        alert(`Could not find article ${ articleId } for ${ this.ensName }`);
+                        return;
+                    }
+                    revision = info.revision + 1;
+
+                } else if (articles.length) {
+                    // We already have articles; find the next articleId
+                    // Note: we space them out by 10 so we can insert in the middle
+                    // in the future if needed
                     const latest = articles[articles.length - 1];
                     articleId = latest.articleId + 10;
                     revision = latest.revision + 1;
                 }
 
-                const article = Article.from(textarea.value);
+                const article = Article.from(content);
                 const tx = await article.publishTransaction(this.ensName, this.secretKey, articleId, revision);
                 console.log(tx);
+
+                if (content === textarea.value) {
+                    textarea.classList.add("saved");
+                }
 
                 const txResponse = await signer.sendTransaction(tx);
                 console.log(txResponse);
@@ -237,6 +317,7 @@ class App {
                 console.log(receipt);
 
                 this.renderPublishLink(articleId);
+                this.updateParameters({ article: String(articleId), key: null, hash: null });
             };
         }
     }
@@ -253,6 +334,16 @@ class App {
             }
             return accum
         }, <{ [ key: string ]: string }>{ });
+    }
+
+    updateParameters(updates: { [ key: string ]: string }): void {
+        const params = this.getParameters();
+        for (const key in updates) { params[key] = updates[key]; }
+
+        location.hash = "#" + Object.keys(params).map((key) => {
+            if (params[key] == null) { return null; }
+            return `${ key }=${ params[key] }`
+        }).filter((p) => !!p).join("&");
     }
 
     startEditor(markdown?: string): void {
@@ -276,6 +367,31 @@ class App {
         });
     }
 
+    get isDev(): boolean {
+        return (location.href.substring(0, 7) === "http://");
+    }
+
+    getBaseUrl(ensName?: string): string {
+        if (ensName) {
+            ensName = ensName.split(".")[0] + ".";
+        } else {
+            ensName = "";
+        }
+
+        if (this.isDev) {
+            return `http://${ ensName }waxlit.local:8001/`;
+        }
+
+        return `https://${ ensName }waxlit.com/`;
+    }
+
+    async getArticleInfo(articleId: number): Promise<ArticleInfo> {
+        const infos = await Article.listArticles(this.provider, this.ensName);
+        const info = infos.filter((a) => (a.articleId === articleId))[0];
+        if (!info) { return null; }
+        return info;
+    }
+
     async start(): Promise<void> {
         console.log("Starting app...");
 
@@ -289,19 +405,38 @@ class App {
                 ethers.utils.defineReadOnly(this, "secretKey", params.key);
                 ethers.utils.defineReadOnly(this, "hash", params.hash);
                 ethers.utils.defineReadOnly(this, "ensName", params.ens);
+                this.renderBanner();
                 this.startPreview();
 
             } else if (params.action === "edit") {
-                ethers.utils.defineReadOnly(this, "secretKey", params.key);
                 ethers.utils.defineReadOnly(this, "ensName", params.ens);
+                this.renderBanner();
 
-                if (params.hash) {
+                if (params.article) {
+                    ethers.utils.defineReadOnly(this, "articleId", parseInt(params.article));
+
+                    const info = await this.getArticleInfo(this.articleId);
+                    if (!info) {
+                        alert(`article ${ params.article } not found for ${ this.ensName }.`);
+                        return;
+                    }
+
+                    ethers.utils.defineReadOnly(this, "secretKey", info.secretKey);
+                    ethers.utils.defineReadOnly(this, "hash", info.hash);
+
+                    const article = await Article.load(this.secretKey, this.hash);
+                    this.startEditor(article.body);
+
+                } else if (params.hash) {
                     ethers.utils.defineReadOnly(this, "hash", params.hash);
+                    ethers.utils.defineReadOnly(this, "secretKey", params.key);
 
                     const article = await Article.load(this.secretKey, this.hash);
                     this.startEditor(article.body);
                     this.renderPreview(this.secretKey, this.hash);
+
                 } else {
+                    ethers.utils.defineReadOnly(this, "secretKey", params.key);
                     this.startEditor();
                 }
 
@@ -311,22 +446,25 @@ class App {
 
         } else if (comps.length === 3) {
             ethers.utils.defineReadOnly(this, "ensName", comps[0] + ".eth");
-            const articles = await Article.listArticles(this.provider, this.ensName);
+            this.renderBanner();
 
             let articleId: number = null;
-            if (baseUrl.substring(0, 7) === "http:/\/") {
+            if (this.isDev) {
                 articleId = parseInt(location.search.substring(1).split("-")[0]);
             } else {
                 articleId = parseInt(location.pathname.substring(1).split("-")[0]);
             }
-            const article = articles.filter((a) => a.articleId === articleId)[0];
+            ethers.utils.defineReadOnly(this, "articleId", articleId);
+            const info = await this.getArticleInfo(articleId); //articles.filter((a) => a.articleId === articleId)[0];
 
-            if (article) {
-                this.startView(article);
+            if (info) {
+                this.startView(info);
             } else {
                 alert(`article ${ articleId } not found for ${ this.ensName }.`);
             }
         }
+
+        console.log(await Article.listArticles(this.provider, this.ensName));
     }
 }
 

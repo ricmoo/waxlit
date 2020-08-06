@@ -70,6 +70,16 @@ export class CodeNode extends Node implements BlockNode {
     }
 }
 
+export class ImageNode extends Node implements BlockNode {
+    src: string;
+    caption: string;
+
+    constructor(src: string, caption?: string) {
+        super();
+        this.src = src;
+        this.caption = caption;
+    }
+}
 
 export enum ElementType {
     BOLD      = "bold",
@@ -252,6 +262,14 @@ export function parseMarkdown(markdown: string): Array<BlockNode> {
         } else if (line.match(/^#/)) {
             clearBlock();
             blocks.push(new TitleNode(line.substring(2).trim()));
+
+        // Image
+        } else if (line.match(/^&&/)) {
+            clearBlock();
+            const comps = line.substring(2).split("|");
+            const src = comps[0].trim();
+            const caption = (comps.length === 2) ? comps[1].trim(): null;
+            blocks.push(new ImageNode(src, caption));
 
         // Bullet list item (may be starting a new list or continuing)
         } else if (line.trim()[0] === "-") {

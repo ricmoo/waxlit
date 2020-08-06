@@ -34,7 +34,7 @@ span.sup {
   top: -5px;
 }
 
-.button-new {
+.header .button {
   border: 2px solid #000;
   border-radius: 4px;
   cursor: pointer;
@@ -44,12 +44,19 @@ span.sup {
   line-height: 30px;
   position: absolute;
   top: 20px;
-  right: 20px;
   text-align: center;
   width: 34px;  
 }
 
-.button-new:hover {
+.button-new {
+  right: 20px;
+}
+
+.button-edit {
+  right: 80px;
+}
+
+.header .button:hover {
   background: #000;
   color: #fff;
 }
@@ -154,9 +161,21 @@ body.editing .page {
 }
 
 .page .header {
-    height: 100px;
+  height: 100px;
 }
 
+.page .header .logo {
+  opacity: 0.8;
+  padding: 20px 40px;
+  transition: opacity 0.5s linear;
+  width: 200px;
+}
+
+/*
+.page .header .logo:hover {
+  opacity: 1;
+}
+*/
 .page .footer {
 }
 
