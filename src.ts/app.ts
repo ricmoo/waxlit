@@ -42,6 +42,10 @@ function renderText(node: MarkdownInlineNode): string {
         return output.join(" ");
     }
 
+    if (node instanceof MarkdownLinkNode) {
+        return node.title;
+    }
+
     if (node instanceof MarkdownTextNode) {
         return node.text;
     }
