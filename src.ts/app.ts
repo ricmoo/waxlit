@@ -271,8 +271,9 @@ class App {
                 console.log('reader.result', image.length);
                 try {
                     const result = await this.ipfs.put(image);
-                    textarea.value += ` [](${this.gateway.getTrustedUrl(result.Key)})`;
+                    textarea.value += `\n&&${this.gateway.getTrustedUrl(result.Key)}`;
                     console.log('put result', result);
+                    textarea.dispatchEvent(new Event("input", { bubbles: true, cancelable: true}));
                 } catch (err) {
                     console.log('put image error', err);
                 }
