@@ -72,6 +72,42 @@ span.sup {
   width: 100px;
 }
 
+a.summary {
+  display: block;
+  color: #333;
+  text-decoration: none;
+  margin: 30px 0;
+  position: relative;
+}
+
+.summary .image {
+  position: absolute;
+  margin: 0;
+  padding: 0;
+  top: 0;
+  left: 0;
+  width: 150px;
+  height: 100%;
+}
+
+.summary .heading {
+  font-weight: bold;
+  margin-bottom: 16px;
+}
+
+.summary .heading.with-image {
+    margin-left: 170px;
+}
+
+.summary .body {
+  font-size: 18px;
+  line-height: 20px;
+}
+
+.summary .body.with-image {
+    margin-left: 170px;
+}
+
 .header .button {
   border: 2px solid #000;
   border-radius: 4px;
@@ -309,16 +345,14 @@ body.editing .page {
   font-style: normal; 
 }
 
-.article a {
+.article a.link {
   background-image: url("data:image/svg+xml;utf8,<svg preserveAspectRatio=\"none\" viewBox=\"0 0 1 20\" xmlns=\"http://www.w3.org/2000/svg\"><line x1=\"0\" y1=\"19\" x2=\"1\" y2=\"19\" stroke-width=\"1\" stroke=\"rgba(0, 0, 0, 0.5)\" /></svg>");
-  dddbackground-position: 0px calc(1em + 1px);
-  dddbackground-size: 1px 1px;
   color: #444;
   text-decoration: none;
 
 }
 
-.article a:hover {
+.article a.link:hover {
   background-image: url("data:image/svg+xml;utf8,<svg preserveAspectRatio=\"none\" viewBox=\"0 0 1 20\" xmlns=\"http://www.w3.org/2000/svg\"><line x1=\"0\" y1=\"19\" x2=\"1\" y2=\"19\" stroke-width=\"2\" stroke=\"rgba(0, 0, 0, 0.6)\" /></svg>");
   color: #000;
 }

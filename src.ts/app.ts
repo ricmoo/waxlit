@@ -8,6 +8,7 @@ import {
     CodeNode as MarkdownCodeNode,
     ElementNode as MarkdownElementNode,
     ImageNode as MarkdownImageNode,
+    InlineNode as MarkdownInlineNode,
     LinkNode as MarkdownLinkNode,
     ListNode as MarkdownListNode,
     ParentNode as MarkdownParentNode,
@@ -31,6 +32,22 @@ interface HTMLInputEvent extends Event {
     target: HTMLInputElement & EventTarget;
 }
 
+
+function renderText(node: MarkdownInlineNode): string {
+    if (node instanceof MarkdownElementNode) {
+        let output: Array<string> = [ ];
+        node.children.forEach((child) => {
+           output.push(renderText(child));
+        });
+        return output.join(" ");
+    }
+
+    if (node instanceof MarkdownTextNode) {
+        return node.text;
+    }
+
+    return "HUH??";
+}
 
 function renderBlock(node: MarkdownNode): Node {
     let element: Node = null;
@@ -72,6 +89,7 @@ function renderBlock(node: MarkdownNode): Node {
 
     } else if (node instanceof MarkdownLinkNode) {
         element = document.createElement("a");
+        (<HTMLElement>element).className = "link";
         (<HTMLElement>element).setAttribute("href", node.href);
         (<HTMLElement>element).appendChild(document.createTextNode(node.title));
 
@@ -221,7 +239,8 @@ class App {
 
         container.classList.add("enabled");
 
-        link.setAttribute("href", this.getBaseUrl(this.ensName) + (this.isDev ? "?": "") + articleId);
+        //link.setAttribute("href", this.getBaseUrl(this.ensName) + (this.isDev ? "?": "") + articleId);
+        link.setAttribute("href", this.getArticleUrl(this.ensName, articleId));
     }
 
     setupEditor(markdown?: string): void {
@@ -396,6 +415,82 @@ class App {
         });
     }
 
+    async startIndex(): Promise<void> {
+        let infos = await Article.listArticles(this.provider, this.ensName);
+        document.getElementById("date-month").textContent = `${ infos.length } articles`;
+
+        if (infos.length > 5) {
+            infos = infos.slice(infos.length - 5);
+        }
+
+        // Reverse the list
+        infos = infos.reduce((accum, info) => {
+            accum.unshift(info);
+            return accum;
+        }, <Array<ArticleInfo>>[ ]);
+
+        const contents = await Promise.all(infos.map(async (info) => {
+            const article = await Article.load(info.secretKey, info.hash);
+            const ast = parseMarkdown(article.body)
+
+            let title: string = null;
+            let body: string = null;
+            let image: string = null;
+            ast.forEach((block) => {
+
+                if (block instanceof MarkdownTitleNode && title == null) {
+                    title = block.title;
+                    return;
+                }
+
+                if ((block instanceof MarkdownElementNode || block instanceof MarkdownTextNode)&& body == null) {
+                    body = renderText(block);
+                }
+
+                if (block instanceof MarkdownImageNode && image == null) {
+                   image = block.src;
+                }
+            });
+
+            return { articleId: info.articleId, title, body, image };
+        }));
+        console.log(contents);
+
+        const inject = document.getElementById("inject");
+        contents.forEach((summary) => {
+            const div = document.createElement("a");
+            div.className = "summary";
+            div.setAttribute("href", this.getArticleUrl(this.ensName, summary.articleId));
+            inject.appendChild(div);
+
+            if (summary.image) {
+                const image = document.createElement("div");
+                image.className = "image";
+                div.appendChild(image);
+                image.style.background = `url(${ summary.image })`;
+                image.style.backgroundSize = "cover";
+                image.style.backgroundPosition = "center";
+            }
+
+            const title = document.createElement("div");
+            div.appendChild(title);
+            title.className = "heading";
+            title.appendChild(document.createTextNode(summary.title || "no title"));
+            if (summary.title == null) { title.style.fontStyle = "italic"; }
+
+            const body = document.createElement("div");
+            div.appendChild(body);
+            body.className = "body";
+            body.appendChild(document.createTextNode(summary.body || "no content"));
+            if (summary.body == null) { body.style.fontStyle = "italic"; }
+
+            if (summary.image) {
+                title.classList.add("with-image");
+                body.classList.add("with-image");
+            }
+        });
+    }
+
     async startView(articleInfo: ArticleInfo): Promise<void> {
         const setupDate = this.provider.getBlock(articleInfo.blockNumber).then((block) => {
             this.renderDate(new Date(block.timestamp * 1000));
@@ -410,6 +505,10 @@ class App {
 
     get isDev(): boolean {
         return (location.href.substring(0, 7) === "http://");
+    }
+
+    getArticleUrl(ensName: string, articleId: number): string {
+        return this.getBaseUrl(ensName) + (this.isDev ? "?": "") + String(articleId);
     }
 
     getBaseUrl(ensName?: string): string {
@@ -497,13 +596,19 @@ class App {
             } else {
                 articleId = parseInt(location.pathname.substring(1).split("-")[0]);
             }
-            ethers.utils.defineReadOnly(this, "articleId", articleId);
-            const info = await this.getArticleInfo(articleId); //articles.filter((a) => a.articleId === articleId)[0];
 
-            if (info) {
-                promises.push(this.startView(info));
+            if (articleId) {
+                ethers.utils.defineReadOnly(this, "articleId", articleId);
+                const info = await this.getArticleInfo(articleId); //articles.filter((a) => a.articleId === articleId)[0];
+
+                if (info) {
+                    promises.push(this.startView(info));
+                } else {
+                    alert(`article ${ articleId } not found for ${ this.ensName }.`);
+                }
+
             } else {
-                alert(`article ${ articleId } not found for ${ this.ensName }.`);
+                await this.startIndex();
             }
         }
 
