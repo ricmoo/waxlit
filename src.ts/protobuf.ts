@@ -76,7 +76,11 @@ export class PBNode {
     this.data = data;
   }
 
-  static encode(data?: Uint8Array, links?: Array<PBLink>): Uint8Array {
+  static encode(
+    data: Uint8Array = new Uint8Array([]),
+    filesize: number,
+    links?: Array<PBLink>
+  ): Uint8Array {
     const schema: SchemaDefinition = Schemas[SchemaType.PBNODE];
     const result: Array<Uint8Array> = [];
 
@@ -84,7 +88,7 @@ export class PBNode {
       // tag, length of unixfs encoded data, unixfs encoded data
       result.push(encodeTag("data", schema));
 
-      const encodedData = PBData.encode(data);
+      const encodedData = PBData.encode(data, filesize);
       const size = Varint.encode(encodedData.byteLength);
       result.push(size);
       result.push(encodedData);
@@ -162,7 +166,7 @@ export class PBLink {
 }
 
 class PBData {
-  static encode(data: Uint8Array): Uint8Array {
+  static encode(data: Uint8Array, filesize: number): Uint8Array {
     const schema: SchemaDefinition = Schemas[SchemaType.UNIXFS];
     const result: Array<Uint8Array> = [];
 
@@ -176,7 +180,7 @@ class PBData {
     result.push(data);
 
     result.push(encodeTag("filesize", schema));
-    result.push(size);
+    result.push(Varint.encode(filesize));
 
     return ethers.utils.concat(result);
   }

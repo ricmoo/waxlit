@@ -100,17 +100,16 @@ describe("IPFS", function () {
     });
 
     it.skip("image", async function () {
-      //this.timeout(120000);
-      //"/Users/yuetloo/Downloads/neo-still-1.png"
-      /*const sourceFile = "mage.jpeg";
+      /*
+      this.timeout(120000);
+      const sourceFile = "avatar2.png";
       const image = fs.readFileSync(sourceFile);
       const result = await ipfs.put(image);
-      console.log("saved image", cid);
+      console.log("saved image", result);
 
-      const cid = "QmciizQHh7Yy9AaVua8FwwUMEP57cnpCNeREfMbXcbTYXi";
+      const cid = result.Key;
       const savedData = await ipfs.get(cid);
-      ///Users/yuetloo/Downloads/neo-still-2.png
-      const targetFile = "/Users/yuetloo/Downloads/image3.jpeg";
+      const targetFile = "avatar.png";
       fs.writeFileSync(targetFile, savedData);
       assert.ok(savedData !== null, "failed to get from ipfs");
       */
