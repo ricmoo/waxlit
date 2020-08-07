@@ -256,6 +256,7 @@ class App {
         const buttonSave = document.getElementById("button-save");
         const buttonUpload = document.getElementById("button-upload");
         const fileDialog = document.getElementById("file-dialog");
+        const uploadStatus = document.getElementById("upload-status");
 
         const textarea: HTMLInputElement = <HTMLInputElement>(document.getElementById("editor"));
         textarea.oninput = () => {
@@ -295,6 +296,8 @@ class App {
 
         fileDialog.onchange = (event?: HTMLInputEvent) => {
             const input = event.target;
+            buttonUpload.classList.remove("enabled");
+            uploadStatus.classList.add("working");
 
             const reader = new FileReader();
             reader.onload = async () => {
@@ -305,8 +308,12 @@ class App {
                     textarea.value += `\n&&${this.gateway.getTrustedUrl(result.Key)}`;
                     console.log('put result', result);
                     textarea.dispatchEvent(new Event("input", { bubbles: true, cancelable: true}));
+                    buttonUpload.classList.add("enabled");
+                    uploadStatus.classList.remove("working");
                 } catch (err) {
                     console.log('put image error', err);
+                    buttonUpload.classList.add("enabled");
+                    uploadStatus.classList.remove("working");
                 }
             };
             reader.readAsArrayBuffer(input.files[0]);

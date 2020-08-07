@@ -380,3 +380,9 @@ body.editing .page {
   font-size: 26px;
   margin: 1.5em 0 -0.5em 0;
 }
+
+.working {
+  content:url(https://waxlit.com/spinner.gif);
+  width: 20px;
+  height: 20px;
+}
