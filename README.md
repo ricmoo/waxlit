@@ -15,10 +15,12 @@ Demo and Links
 --------------
 
 GitHub: https://github.com/ricmoo/waxlit/
+
 HackFS: https://hack.ethglobal.co/showcase/ricloo-recx8uX5SLsDtBYcw
+
 YouTube: https://www.youtube.com/watch?v=6PzDK4G6Kpc
 
-Example: https://ricmoose.waxlit.com
+Live Demo: https://ricmoose.waxlit.com
 
 
 Command-Line Utilities
